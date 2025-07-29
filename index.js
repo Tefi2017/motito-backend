@@ -1,4 +1,4 @@
-cconsole.log('El script Node.js ha comenzado a ejecutarse.');
+console.log('El script Node.js ha comenzado a ejecutarse.');
 
 const express = require('express');
 const cors = require('cors');
