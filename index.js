@@ -8,11 +8,11 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Configuración de middlewares
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Conexión a la base de datos PostgreSQL
+// Configuración de la base de datos PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -20,12 +20,43 @@ const pool = new Pool({
   },
 });
 
-// Ruta raíz
+// Ruta raíz de prueba
 app.get('/', (req, res) => {
   res.send('¡Bienvenido a la API de Motos con PostgreSQL!');
 });
 
-// Ruta GET: Obtener todas las motos
+// Ruta: Obtener todas las marcas
+app.get('/marcas', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, descripcion FROM marcas ORDER BY descripcion'
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Ruta: Obtener modelos por idMarca
+app.get('/modelos', async (req, res) => {
+  const { idMarca } = req.query;
+
+  if (!idMarca) {
+    return res.status(400).json({ error: 'Falta el parámetro idMarca' });
+  }
+
+  try {
+    const result = await pool.query(
+      'SELECT id, descripcion FROM modelos WHERE marca_id = $1 ORDER BY descripcion',
+      [idMarca]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// (Opcional) Ruta: Obtener todas las motos
 app.get('/motos', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM motos');
@@ -35,7 +66,7 @@ app.get('/motos', async (req, res) => {
   }
 });
 
-// Ruta POST: Agregar una nueva moto
+// (Opcional) Ruta: Agregar una nueva moto
 app.post('/motos', async (req, res) => {
   const { titulo, descripcion, precio, imagen } = req.body;
 
@@ -45,17 +76,21 @@ app.post('/motos', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `INSERT INTO motos (titulo, descripcion, precio, imagen) 
-       VALUES ($1, $2, $3, $4) RETURNING id`,
+      `INSERT INTO motos (titulo, descripcion, precio, imagen)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
       [titulo, descripcion, precio, imagen]
     );
-    res.status(201).json({ id: result.rows[0].id, message: 'Moto agregada correctamente.' });
+    res.status(201).json({
+      id: result.rows[0].id,
+      message: 'Moto agregada correctamente.',
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Inicia el servidor
+// Iniciar servidor
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en http://localhost:${PORT}`);
 });
